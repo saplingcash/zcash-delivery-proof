@@ -95,6 +95,11 @@ to `make` stays in memory; the package does no I/O.
   - `tests/vectors.rs` rebuilds the file and requires it to match.
 - `test-vectors/testnet.json`: a real transaction mined on Zcash testnet that pays an Ironwood note with a
   memo, the test wallet's UFVK, and the proof.
+- `test-vectors/mainnet.json`: a real transaction mined on Zcash mainnet that pays an Ironwood note with a
+  memo, and its proof. It has no viewing key: the proof checks with none.
+
+There is no mainnet Orchard vector yet. Orchard is covered by the constructed vector, and the Orchard and
+Ironwood checks share one code path, apart from the pool's note version and note encryption domain.
 
 ## Build and test
 

@@ -39,4 +39,8 @@ const d = JSON.parse(check(t.txHex, t.proof, t.network));
 expect(d.value === 546 && d.txid === t.txid, `testnet ${t.txid.slice(0, 16)}…: 546 zatoshi, memo starts "${(d.memoText ?? "").split("\n")[0]}"`);
 expect(JSON.parse(make(t.txHex, t.ufvk))[0]?.proof === t.proof, "testnet: the wallet's key finds its note");
 
+const m = read("mainnet.json");
+const dm = JSON.parse(check(m.txHex, m.proof, m.network));
+expect(dm.value === m.value && dm.txid === m.txid && dm.memoText === m.memoText && dm.address === m.address, `mainnet ${m.txid.slice(0, 16)}…: ${m.value} zatoshi, memo "${dm.memoText}"`);
+
 process.exit(failures ? 1 : 0);

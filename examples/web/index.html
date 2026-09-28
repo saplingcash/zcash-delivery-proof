@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check a Zcash delivery proof</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; }
+  textarea { width: 100%; font: 12px/1.4 ui-monospace, monospace; }
+  pre { background: #f4f4f4; padding: 1rem; overflow-x: auto; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>Check a delivery proof</h1>
+<p>Everything runs in this page: nothing is sent anywhere. Serve the repository with any static server
+(for example <code>python3 -m http.server</code> at its root) and open <code>/examples/web/</code>.</p>
+<label>Network <select id="network"><option>mainnet</option><option>testnet</option></select></label>
+<p><label>Transaction (raw hex)<br><textarea id="tx" rows="5"></textarea></label></p>
+<p><label>Proof (zdp:1:…)<br><textarea id="proof" rows="3"></textarea></label></p>
+<button id="check">Check</button>
+<pre id="out"></pre>
+<script type="module">
+  import init, { check } from "../../wasm/pkg/zcash_delivery_proof_wasm.js";
+  await init({ module_or_path: new URL("../../wasm/pkg/zcash_delivery_proof_wasm_bg.wasm", import.meta.url) });
+  const $ = (id) => document.getElementById(id);
+  $("check").onclick = () => {
+    try {
+      const d = JSON.parse(check($("tx").value.trim(), $("proof").value.trim(), $("network").value));
+      $("out").textContent = `Delivered: ${d.value} zatoshi\nto ${d.address}\nin ${d.pool}, action ${d.action}\nmemo: ${d.memoText ?? "(not text) " + d.memoHex}\n\ntxid  ${d.txid}\nwtxid ${d.wtxid}\n\nLook the txid up on a node or explorer to see that the transaction is mined.`;
+    } catch (e) {
+      $("out").textContent = `Not a valid delivery proof for this transaction: ${e.message ?? e}`;
+    }
+  };
+</script>
+</body>
+</html>

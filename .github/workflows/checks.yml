@@ -1,0 +1,58 @@
+# Every push and pull request: a secret scan of the full history, the tests (with and without the bundle
+# check), the WebAssembly package in Node, and the WebAssembly rebuilt byte for byte.
+# Actions are pinned by commit; downloaded binaries by version and checksum.
+name: checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: gitleaks (every commit)
+        run: |
+          curl -sSfL -o gitleaks.tgz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tgz" | sha256sum -c -
+          tar -xzf gitleaks.tgz gitleaks
+          ./gitleaks git --redact --verbose --exit-code 1 .
+
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # rust-toolchain.toml pins the compiler; Cargo.lock the crates
+      - run: cargo test --release --locked
+      - run: cargo test --release --locked --features verify-bundle
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - run: node examples/node/check.mjs
+
+  wasm:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    container: ubuntu@sha256:da6fc2be547864451aa253836dd926da33623312df4a9a243e35dc877c378a78 # 26.04
+    steps:
+      - name: build tools
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq curl ca-certificates git build-essential clang
+          curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: wasm-bindgen 0.2.129 (the official release binary)
+        run: |
+          curl -sSfL -o /tmp/wasm-bindgen.tgz https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.129/wasm-bindgen-0.2.129-x86_64-unknown-linux-musl.tar.gz
+          echo "82d12bb940e2d4e72e0d5605387fc1b8ca179044e012b620f0ce4e7440e8320e  /tmp/wasm-bindgen.tgz" | sha256sum -c -
+          mkdir -p /opt/wasm-bindgen && tar -xzf /tmp/wasm-bindgen.tgz -C /opt/wasm-bindgen --strip-components=1
+      - run: ./wasm/build.sh --check
+        env:
+          WASM_BINDGEN: /opt/wasm-bindgen/wasm-bindgen

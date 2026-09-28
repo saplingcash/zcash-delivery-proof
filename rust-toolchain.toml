@@ -1,0 +1,4 @@
+[toolchain]
+# the compiler the library is built and tested with
+channel = "1.98.1"
+profile = "minimal"

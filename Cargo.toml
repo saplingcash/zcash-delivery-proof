@@ -1,0 +1,48 @@
+[package]
+name = "zcash-delivery-proof"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "Apache-2.0"
+description = "Prove that a Zcash shielded payment (Orchard or Ironwood) was delivered to an address, with its memo, without revealing the wallet."
+repository = "https://github.com/saplingcash/zcash-delivery-proof"
+readme = "README.md"
+keywords = ["zcash", "orchard", "ironwood", "proof", "receipt"]
+categories = ["cryptography::cryptocurrencies"]
+publish = false
+
+[lib]
+name = "zcash_delivery_proof"
+
+[features]
+# also verify the bundle's zk-SNARK and signatures (orchard's BatchValidator): heavy, off by default
+verify-bundle = ["orchard/circuit", "dep:rand_core", "dep:sapling", "dep:zcash_transparent", "dep:zcash_script"]
+
+[dependencies]
+zcash_primitives = { version = "0.30", default-features = false, features = ["std"] }
+zcash_protocol = "0.10"
+zcash_address = "0.13"
+orchard = { version = "0.15", default-features = false, features = ["std"] }
+zcash_note_encryption = "0.4"
+base64 = "0.22"
+hex = "0.4"
+serde = { version = "1", features = ["derive"] }
+# verify-bundle only
+rand_core = { version = "0.6", features = ["getrandom"], optional = true }
+sapling = { package = "sapling-crypto", version = "0.7", default-features = false, optional = true }
+zcash_transparent = { version = "0.10", optional = true }
+zcash_script = { version = "0.4.3", default-features = false, optional = true }
+
+[dev-dependencies]
+# building the test transactions (label-derived keys, a seeded RNG, real proofs)
+zcash_primitives = { version = "0.30", default-features = false, features = ["std", "circuits", "transparent-inputs"] }
+orchard = { version = "0.15", default-features = false, features = ["std", "circuit"] }
+zcash_transparent = { version = "0.10", features = ["transparent-inputs"] }
+sapling = { package = "sapling-crypto", version = "0.7", default-features = false, features = ["circuit"] }
+jubjub = "0.10"
+bls12_381 = "0.8"
+secp256k1 = "0.29"
+rand_core = "0.6"
+rand_chacha = "0.3"
+sha2 = "0.10"
+serde_json = "1"

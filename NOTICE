@@ -1,0 +1,15 @@
+zcash-delivery-proof
+Copyright 2026 Sapling (sapling.cash)
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Attribution. Redistributions of this work or of works derived from it, in source or object form, must
+keep this NOTICE file and the copyright notices in it (License, sections 4(c) and 4(d)), and every
+modified file must carry a prominent notice stating that it was changed (section 4(b)).
+
+The License grants no rights to the Sapling name or logo or the sapling.cash domain (section 6); see
+TRADEMARKS.md.
+
+It depends on, and does not include, the Zcash crates (zcash_primitives, zcash_protocol,
+zcash_address, orchard, zcash_note_encryption and their dependencies, https://github.com/zcash), which
+Cargo downloads from crates.io, licensed under the MIT license or the Apache License, Version 2.0.

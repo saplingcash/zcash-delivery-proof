@@ -3,7 +3,7 @@
 
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
-use zcash_delivery_proof::{memo_text, receiver_address as encode_receiver, DeliveryProof, Pool, Side, ViewingKeys};
+use zcash_delivery_proof::{memo_text, pool_receiver_address, DeliveryProof, Pool, Side, ViewingKeys};
 use zcash_protocol::consensus::NetworkType;
 
 /// Where this module comes from, in a custom section of the WebAssembly binary named "sapling.cash"
@@ -51,12 +51,7 @@ struct FoundView {
     memo_hex: String,
 }
 
-/// Every note a UFVK (received and sent) or UIVK (received) sees in the transaction, each with its proof,
-/// as a JSON array. The key's own network chooses the address encoding.
-#[wasm_bindgen]
-pub fn make(tx_hex: &str, viewing_key: &str) -> Result<String, JsError> {
-    let keys = ViewingKeys::parse(viewing_key).map_err(err)?;
-    let found = zcash_delivery_proof::make(&tx_bytes(tx_hex)?, &keys).map_err(err)?;
+fn found_json(found: &[zcash_delivery_proof::Found], network: NetworkType) -> Result<String, JsError> {
     let views: Vec<FoundView> = found
         .iter()
         .map(|f| FoundView {
@@ -64,7 +59,7 @@ pub fn make(tx_hex: &str, viewing_key: &str) -> Result<String, JsError> {
             side: f.side,
             pool: f.proof.pool,
             action: f.proof.action,
-            address: encode_receiver(&f.proof.receiver, keys.network),
+            address: pool_receiver_address(f.proof.pool, &f.proof.receiver, network),
             value: f.proof.value,
             memo_text: memo_text(&f.memo),
             memo_hex: hex::encode(f.memo),
@@ -73,9 +68,32 @@ pub fn make(tx_hex: &str, viewing_key: &str) -> Result<String, JsError> {
     serde_json::to_string(&views).map_err(|e| JsError::new(&e.to_string()))
 }
 
-/// Whether a unified address (as a payer was given it) carries the receiver a proof names.
+/// Every note a UFVK (received and sent) or UIVK (received) sees in the transaction (Orchard, Ironwood and
+/// Sapling), each with its proof, as a JSON array. The key's own network chooses the address encoding.
+#[wasm_bindgen]
+pub fn make(tx_hex: &str, viewing_key: &str) -> Result<String, JsError> {
+    let keys = ViewingKeys::parse(viewing_key).map_err(err)?;
+    found_json(&zcash_delivery_proof::make(&tx_bytes(tx_hex)?, &keys).map_err(err)?, keys.network)
+}
+
+fn ovks(list: &str) -> Result<Vec<[u8; 32]>, JsError> {
+    list.split(',').map(str::trim).filter(|s| !s.is_empty()).map(|h| hex::decode(h).ok().and_then(|v| v.try_into().ok()).ok_or_else(|| JsError::new("an outgoing viewing key is 32 bytes of hex"))).collect()
+}
+
+/// Every note the given outgoing viewing keys sent in the transaction, each with its proof, as a JSON
+/// array (as `make`). `orchardOvks` and `saplingOvks`: comma-separated, 32 bytes of hex each, either may
+/// be empty. For a sender that publishes its outgoing viewing key, so that anyone can prove what it sent.
+#[wasm_bindgen(js_name = makeWithOutgoingKeys)]
+pub fn make_with_outgoing_keys(tx_hex: &str, network_name: &str, orchard_ovks: &str, sapling_ovks: &str) -> Result<String, JsError> {
+    let net = network(network_name)?;
+    let keys = ViewingKeys::from_outgoing_keys(net, &ovks(orchard_ovks)?, &ovks(sapling_ovks)?);
+    found_json(&zcash_delivery_proof::make(&tx_bytes(tx_hex)?, &keys).map_err(err)?, net)
+}
+
+/// Whether an address (a unified address as a payer was given it, or a Sapling address) carries the
+/// receiver a proof names, in the proof's pool.
 #[wasm_bindgen(js_name = addressHasReceiver)]
 pub fn address_has_receiver(address: &str, proof: &str) -> Result<bool, JsError> {
     let p = DeliveryProof::decode(proof).map_err(err)?;
-    Ok(zcash_delivery_proof::address_has_receiver(address, &p.receiver))
+    Ok(zcash_delivery_proof::address_has_pool_receiver(address, p.pool, &p.receiver))
 }

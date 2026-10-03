@@ -2,7 +2,8 @@
 /* eslint-disable */
 
 /**
- * Whether a unified address (as a payer was given it) carries the receiver a proof names.
+ * Whether an address (a unified address as a payer was given it, or a Sapling address) carries the
+ * receiver a proof names, in the proof's pool.
  */
 export function addressHasReceiver(address: string, proof: string): boolean;
 
@@ -13,10 +14,17 @@ export function addressHasReceiver(address: string, proof: string): boolean;
 export function check(tx_hex: string, proof: string, network_name: string): string;
 
 /**
- * Every note a UFVK (received and sent) or UIVK (received) sees in the transaction, each with its proof,
- * as a JSON array. The key's own network chooses the address encoding.
+ * Every note a UFVK (received and sent) or UIVK (received) sees in the transaction (Orchard, Ironwood and
+ * Sapling), each with its proof, as a JSON array. The key's own network chooses the address encoding.
  */
 export function make(tx_hex: string, viewing_key: string): string;
+
+/**
+ * Every note the given outgoing viewing keys sent in the transaction, each with its proof, as a JSON
+ * array (as `make`). `orchardOvks` and `saplingOvks`: comma-separated, 32 bytes of hex each, either may
+ * be empty. For a sender that publishes its outgoing viewing key, so that anyone can prove what it sent.
+ */
+export function makeWithOutgoingKeys(tx_hex: string, network_name: string, orchard_ovks: string, sapling_ovks: string): string;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
@@ -25,6 +33,7 @@ export interface InitOutput {
     readonly addressHasReceiver: (a: number, b: number, c: number, d: number) => [number, number, number];
     readonly check: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
     readonly make: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+    readonly makeWithOutgoingKeys: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number, number, number];
     readonly rustsecp256k1_v0_10_0_context_create: (a: number) => number;
     readonly rustsecp256k1_v0_10_0_context_destroy: (a: number) => void;
     readonly rustsecp256k1_v0_10_0_default_error_callback_fn: (a: number, b: number) => void;

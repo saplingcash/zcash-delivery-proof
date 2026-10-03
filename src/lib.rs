@@ -1,8 +1,8 @@
 //! Delivery proofs for Zcash shielded payments.
 //!
-//! A delivery proof shows that a transaction delivers one note, in the Orchard or the Ironwood pool, to
-//! one receiver, with a value and a memo, and nothing else about the wallet: no viewing key, no other
-//! note. The receiving wallet makes it with its incoming viewing key, or the sending wallet with its
+//! A delivery proof shows that a transaction delivers one note, in the Orchard, Ironwood or Sapling
+//! pool, to one receiver, with a value and a memo, and nothing else about the wallet: no viewing key, no
+//! other note. The receiving wallet makes it with its incoming viewing key, or the sending wallet with its
 //! outgoing viewing key; anyone checks it against the transaction's bytes with no key at all.
 //!
 //! ```no_run
@@ -21,8 +21,8 @@
 //! ```
 //!
 //! What a check does not show: that the transaction is mined (compare its txid or wtxid with a node),
-//! who sent it, and, unless the `verify-bundle` feature is used, that its zk-SNARK and signatures hold.
-//! See SPEC.md.
+//! who sent it, and, unless the `verify-bundle` feature is used (Orchard and Ironwood bundles), that its
+//! zk-SNARK and signatures hold. See SPEC.md.
 
 mod check;
 mod error;
@@ -38,7 +38,7 @@ pub use check::{check, Delivery, DeliveryView};
 pub use error::Error;
 pub use keys::ViewingKeys;
 pub use make::{make, Found, Side};
-pub use memo::{address_has_receiver, memo_text, receiver_address};
+pub use memo::{address_has_pool_receiver, address_has_receiver, memo_text, pool_receiver_address, receiver_address};
 pub use proof::{DeliveryProof, Pool, PREFIX, PROOF_LEN};
 pub use tx::{header_branch, read_tx, wtxid};
 #[cfg(feature = "verify-bundle")]

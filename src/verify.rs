@@ -66,7 +66,13 @@ impl Authorization for ShieldedSighash {
 /// transaction's bundle in `pool`, against the transaction's shielded signature hash. `spent`: the coins
 /// its transparent inputs spend, in input order (empty for a transaction without transparent inputs). A
 /// wrong value or script can only make a valid bundle fail, never an invalid one pass.
+///
+/// Orchard and Ironwood bundles only: a Sapling bundle's proofs are checked against the Sapling
+/// circuits' parameters, which this library does not carry, so `Pool::Sapling` is refused.
 pub fn verify_bundle(tx: &[u8], pool: Pool, spent: &[SpentCoin]) -> Result<(), Error> {
+    if !pool.is_orchard_family() {
+        return Err(Error::Unsupported("the bundle check covers Orchard and Ironwood bundles; a Sapling bundle's proofs need the Sapling parameters".into()));
+    }
     let t = read_tx(tx)?;
     let b = bundle(&t, pool).ok_or_else(|| Error::Mismatch(format!("the transaction has no {pool:?} bundle")))?;
     let inputs = t.transparent_bundle().map(|tb| tb.vin.len()).unwrap_or(0);

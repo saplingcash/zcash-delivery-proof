@@ -1,8 +1,8 @@
 //! The delivery proof and its encodings (SPEC.md §2).
 //!
 //! ```text
-//! zdp:1:<base64url( txid 32 (internal order) || pool u8 (1 = Orchard, 2 = Ironwood) || action u16 LE
-//!                   || receiver 43 || value u64 LE || rseed 32 )>        (118 bytes)
+//! zdp:1:<base64url( txid 32 (internal order) || pool u8 (1 = Orchard, 2 = Ironwood, 3 = Sapling)
+//!                   || action u16 LE || receiver 43 || value u64 LE || rseed 32 )>        (118 bytes)
 //! ```
 use base64::Engine;
 use serde::Serialize;
@@ -20,6 +20,8 @@ pub const PROOF_LEN: usize = 32 + 1 + 2 + 43 + 8 + 32;
 pub enum Pool {
     Orchard,
     Ironwood,
+    /// The Sapling pool. A proof's "action" is then the output's index in the Sapling bundle.
+    Sapling,
 }
 
 impl Pool {
@@ -28,6 +30,7 @@ impl Pool {
         match self {
             Pool::Orchard => 1,
             Pool::Ironwood => 2,
+            Pool::Sapling => 3,
         }
     }
 
@@ -35,8 +38,14 @@ impl Pool {
         match b {
             1 => Some(Pool::Orchard),
             2 => Some(Pool::Ironwood),
+            3 => Some(Pool::Sapling),
             _ => None,
         }
+    }
+
+    /// Whether the pool is Orchard or Ironwood (the Orchard protocol's actions and keys).
+    pub fn is_orchard_family(self) -> bool {
+        matches!(self, Pool::Orchard | Pool::Ironwood)
     }
 }
 
@@ -49,13 +58,15 @@ pub struct DeliveryProof {
     /// explorers display it)
     pub txid: [u8; 32],
     pub pool: Pool,
-    /// the action's index in the pool's bundle
+    /// the action's index in the pool's bundle (for Sapling, the output's index)
     pub action: u16,
-    /// the raw Orchard-family receiver (diversifier and pk_d)
+    /// the raw receiver, in the pool's own encoding (11-byte diversifier, 32-byte pk_d): an
+    /// Orchard-family address, or a Sapling payment address
     pub receiver: [u8; 43],
     /// the note's value, in zatoshi
     pub value: u64,
-    /// the note's rseed: with the action's rho it gives the note, and the esk its ciphertext was made with
+    /// the note's rseed: it gives the note (with the action's rho in the Orchard family), and the esk its
+    /// ciphertext was made with
     pub rseed: [u8; 32],
 }
 
@@ -77,7 +88,7 @@ impl DeliveryProof {
         }
         Ok(DeliveryProof {
             txid: b[0..32].try_into().unwrap(),
-            pool: Pool::from_byte(b[32]).ok_or_else(|| Error::Proof(format!("pool {} is neither Orchard (1) nor Ironwood (2)", b[32])))?,
+            pool: Pool::from_byte(b[32]).ok_or_else(|| Error::Proof(format!("pool {} is not Orchard (1), Ironwood (2) or Sapling (3)", b[32])))?,
             action: u16::from_le_bytes(b[33..35].try_into().unwrap()),
             receiver: b[35..78].try_into().unwrap(),
             value: u64::from_le_bytes(b[78..86].try_into().unwrap()),

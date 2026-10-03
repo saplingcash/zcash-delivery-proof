@@ -1354,7 +1354,7 @@ dependencies = [
 
 [[package]]
 name = "zcash-delivery-proof"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "base64",
  "bls12_381",
@@ -1374,6 +1374,7 @@ dependencies = [
  "zcash_protocol",
  "zcash_script",
  "zcash_transparent",
+ "zip32",
 ]
 
 [[package]]

@@ -1,7 +1,8 @@
 /* @ts-self-types="./zcash_delivery_proof_wasm.d.ts" */
 
 /**
- * Whether a unified address (as a payer was given it) carries the receiver a proof names.
+ * Whether an address (a unified address as a payer was given it, or a Sapling address) carries the
+ * receiver a proof names, in the proof's pool.
  * @param {string} address
  * @param {string} proof
  * @returns {boolean}
@@ -52,8 +53,8 @@ export function check(tx_hex, proof, network_name) {
 }
 
 /**
- * Every note a UFVK (received and sent) or UIVK (received) sees in the transaction, each with its proof,
- * as a JSON array. The key's own network chooses the address encoding.
+ * Every note a UFVK (received and sent) or UIVK (received) sees in the transaction (Orchard, Ironwood and
+ * Sapling), each with its proof, as a JSON array. The key's own network chooses the address encoding.
  * @param {string} tx_hex
  * @param {string} viewing_key
  * @returns {string}
@@ -78,6 +79,43 @@ export function make(tx_hex, viewing_key) {
         return getStringFromWasm0(ptr3, len3);
     } finally {
         wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+    }
+}
+
+/**
+ * Every note the given outgoing viewing keys sent in the transaction, each with its proof, as a JSON
+ * array (as `make`). `orchardOvks` and `saplingOvks`: comma-separated, 32 bytes of hex each, either may
+ * be empty. For a sender that publishes its outgoing viewing key, so that anyone can prove what it sent.
+ * @param {string} tx_hex
+ * @param {string} network_name
+ * @param {string} orchard_ovks
+ * @param {string} sapling_ovks
+ * @returns {string}
+ */
+export function makeWithOutgoingKeys(tx_hex, network_name, orchard_ovks, sapling_ovks) {
+    let deferred6_0;
+    let deferred6_1;
+    try {
+        const ptr0 = passStringToWasm0(tx_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(network_name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(orchard_ovks, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(sapling_ovks, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ret = wasm.makeWithOutgoingKeys(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3);
+        var ptr5 = ret[0];
+        var len5 = ret[1];
+        if (ret[3]) {
+            ptr5 = 0; len5 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred6_0 = ptr5;
+        deferred6_1 = len5;
+        return getStringFromWasm0(ptr5, len5);
+    } finally {
+        wasm.__wbindgen_free(deferred6_0, deferred6_1, 1);
     }
 }
 function __wbg_get_imports() {

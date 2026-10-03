@@ -1,5 +1,6 @@
 //! The `verify-bundle` feature: the bundles of the constructed and the testnet transactions verify, and a
-//! changed ciphertext (which changes the signature hash) does not.
+//! changed ciphertext (which changes the signature hash) does not. A Sapling bundle is refused: the check
+//! is Orchard-family only.
 #![cfg(feature = "verify-bundle")]
 
 use serde_json::Value;
@@ -14,6 +15,11 @@ fn real_bundles_verify_and_a_changed_one_does_not() {
     let constructed = read("constructed.json");
     for c in constructed["cases"].as_array().unwrap() {
         let tx = hex::decode(c["txHex"].as_str().unwrap()).unwrap();
+        if c["pool"] == "sapling" {
+            // the bundle check is Orchard-family only: a Sapling bundle is refused, never passed
+            assert!(matches!(verify_bundle(&tx, Pool::Sapling, &[]), Err(zcash_delivery_proof::Error::Unsupported(_))));
+            continue;
+        }
         let pool = if c["pool"] == "orchard" { Pool::Orchard } else { Pool::Ironwood };
         let spent: Vec<SpentCoin> = c["spent"].as_array().unwrap().iter().map(|s| SpentCoin { value: s["value"].as_u64().unwrap(), script_pubkey: hex::decode(s["scriptPubKey"].as_str().unwrap()).unwrap() }).collect();
         verify_bundle(&tx, pool, &spent).unwrap();
@@ -39,4 +45,11 @@ fn real_bundles_verify_and_a_changed_one_does_not() {
     let out = &prev.transparent_bundle().unwrap().vout[prevout.n() as usize];
     let script: &zcash_transparent::address::Script = &out.script_pubkey().clone().into();
     verify_bundle(&tx, Pool::Ironwood, &[SpentCoin { value: u64::from(out.value()), script_pubkey: script.0 .0.clone() }]).unwrap();
+}
+
+#[test]
+fn a_real_sapling_bundle_is_refused_not_passed() {
+    let t = read("testnet-sapling.json");
+    let tx = hex::decode(t["txHex"].as_str().unwrap()).unwrap();
+    assert!(matches!(verify_bundle(&tx, Pool::Sapling, &[]), Err(zcash_delivery_proof::Error::Unsupported(_))));
 }

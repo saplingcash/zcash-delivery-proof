@@ -1,5 +1,5 @@
 //! A proof holds only for exactly the note it names: change any part of it, or the transaction, and the
-//! check fails. Run on both constructed transactions (Orchard and Ironwood).
+//! check fails. Run on every constructed transaction (Orchard, Ironwood and Sapling).
 
 mod common;
 
@@ -38,7 +38,8 @@ fn every_field_of_the_proof_matters() {
         };
         assert!(mismatch(with(&|p| p.txid[0] ^= 1)).contains("txids differ"));
         assert!(mismatch(with(&|p| p.pool = if p.pool == Pool::Orchard { Pool::Ironwood } else { Pool::Orchard })).contains("bundle"));
-        assert!(mismatch(with(&|p| p.action = 7)).contains("no action 7"));
+        let m = mismatch(with(&|p| p.action = 7));
+        assert!(m.contains("no action 7") || m.contains("no output 7"), "{m}");
         // the other action of the same bundle: another note entirely
         assert!(mismatch(with(&|p| p.action = other.action)).contains("commit"));
         // another receiver, a value one zatoshi off, another rseed
@@ -54,14 +55,12 @@ fn every_field_of_the_proof_matters() {
 fn a_changed_ciphertext_does_not_decrypt_even_under_its_new_txid() {
     for (tx, proof, _) in cases() {
         let t = zcash_delivery_proof::read_tx(&tx).unwrap();
-        let b = match proof.pool {
-            Pool::Orchard => t.orchard_bundle(),
-            Pool::Ironwood => t.ironwood_bundle(),
-        }
-        .unwrap();
-        let action = &b.actions()[usize::from(proof.action)];
+        let enc: [u8; 580] = match proof.pool {
+            Pool::Orchard => t.orchard_bundle().unwrap().actions()[usize::from(proof.action)].encrypted_note().enc_ciphertext,
+            Pool::Ironwood => t.ironwood_bundle().unwrap().actions()[usize::from(proof.action)].encrypted_note().enc_ciphertext,
+            Pool::Sapling => *t.sapling_bundle().unwrap().shielded_outputs()[usize::from(proof.action)].enc_ciphertext(),
+        };
         // find the action's encrypted note (with its memo) in the bytes and change one byte of it
-        let enc = &action.encrypted_note().enc_ciphertext;
         let at = tx.windows(enc.len()).position(|w| w == &enc[..]).expect("the ciphertext is in the bytes") + 100;
         let mut forged = tx.clone();
         forged[at] ^= 0x01;

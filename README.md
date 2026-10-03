@@ -4,7 +4,7 @@ Prove that a Zcash shielded payment was delivered to an address, with its memo, 
 wallet.
 
 A **delivery proof** is one short string (`zdp:1:…`). It says: this transaction delivered a note of this
-value, with this memo, to this address, in the Orchard or the Ironwood pool.
+value, with this memo, to this address, in the Orchard, the Ironwood or the Sapling pool.
 - **Who makes it:** the receiving wallet, with its incoming viewing key, or the sending wallet, with its
   outgoing viewing key.
 - **Who checks it:** anyone, against the transaction's bytes, with no key at all.
@@ -59,8 +59,13 @@ println!("{} zatoshi, memo {:?}, in {}", d.value, memo_text(&d.memo), d.txid_hex
 ```
 
 It uses the Zcash crates' own transaction parser, note encryption and key types (zcash_primitives 0.30,
-orchard 0.15). The optional `verify-bundle` feature adds `verify_bundle(tx, pool, spent_coins)`. It builds
-the verifying key the first time it is called: seconds and tens of MB.
+orchard 0.15, sapling-crypto 0.7).
+
+A sender that publishes an outgoing viewing key lets anyone find and prove what it sent with it:
+`ViewingKeys::from_outgoing_keys(network, &orchard_ovks, &sapling_ovks)`, 32 bytes each.
+
+The optional `verify-bundle` feature adds `verify_bundle(tx, pool, spent_coins)` for Orchard and Ironwood
+bundles. It builds the verifying key the first time it is called: seconds and tens of MB.
 
 Examples, running on the test vectors:
 
@@ -75,10 +80,11 @@ cargo run --example audit
 `wasm/pkg` holds the package, built by `wasm/build.sh`:
 
 ```js
-import init, { check, make, addressHasReceiver } from "./wasm/pkg/zcash_delivery_proof_wasm.js";
+import init, { check, make, makeWithOutgoingKeys, addressHasReceiver } from "./wasm/pkg/zcash_delivery_proof_wasm.js";
 await init();
 const delivery = JSON.parse(check(txHex, proof, "mainnet"));   // txid, wtxid, pool, action, address, value, memoText
 const found = JSON.parse(make(txHex, viewingKey));             // [{ proof, side, pool, action, address, value, memoText }]
+const sent = JSON.parse(makeWithOutgoingKeys(txHex, "mainnet", orchardOvkHex, saplingOvkHex));   // the same, sent
 ```
 
 In Node, `initSync({ module: bytes })` loads it from the file: `node examples/node/check.mjs` checks every
@@ -87,19 +93,24 @@ to `make` stays in memory; the package does no I/O.
 
 ## Test vectors
 
-- `test-vectors/constructed.json`: one Orchard (v5) and one Ironwood (v6) transaction. Each pays a
-  merchant and a second party from a transparent coin, with the keys that see each payment (the
-  merchant's UFVK and UIVK, the other party's, the sender's, and a stranger's) and every proof.
+- `test-vectors/constructed.json`: one Orchard (v5), one Ironwood (v6) and one Sapling (v6) transaction.
+  Each pays a merchant and a second party from a transparent coin, with the keys that see each payment
+  (the merchant's UFVK and UIVK, the other party's, the sender's, and a stranger's) and every proof.
   - They're built by librustzcash's own transaction builder, under testnet rules, and never broadcast.
   - Every key comes from a label under `sapling.cash/zdp/` (`tests/common`).
   - `tests/vectors.rs` rebuilds the file and requires it to match.
+  - The Sapling transaction's Output proofs are placeholders (192 zero bytes): real ones need the Sapling
+    parameters, and a delivery proof's check does not read them.
 - `test-vectors/testnet.json`: a real transaction mined on Zcash testnet that pays an Ironwood note with a
   memo, the test wallet's UFVK, and the proof.
+- `test-vectors/testnet-sapling.json`: a real transaction mined on Zcash testnet that pays a Sapling note
+  with a memo, the test wallet's UFVK, the sender's outgoing viewing key, and the proof.
 - `test-vectors/mainnet.json`: a real transaction mined on Zcash mainnet that pays an Ironwood note with a
   memo, and its proof. It has no viewing key: the proof checks with none.
 
-There is no mainnet Orchard vector yet. Orchard is covered by the constructed vector, and the Orchard and
-Ironwood checks share one code path, apart from the pool's note version and note encryption domain.
+There is no mainnet Orchard or Sapling vector yet. Orchard is covered by the constructed vector, and the
+Orchard and Ironwood checks share one code path, apart from the pool's note version and note encryption
+domain. Sapling is covered by the constructed vector and the testnet one.
 
 ## Build and test
 
@@ -126,8 +137,8 @@ module carries a custom section named `sapling.cash` that says where it comes fr
 
 ## Status
 
-Version 0.1.0, published on GitHub only. It is not yet on crates.io or npm, and not yet independently
-reviewed.
+Version 0.2.0 (Sapling notes; see CHANGELOG.md), published on GitHub only. It is not yet on crates.io
+or npm, and not yet independently reviewed.
 
 ## License
 

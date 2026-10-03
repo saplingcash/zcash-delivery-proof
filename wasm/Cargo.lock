@@ -1300,21 +1300,23 @@ dependencies = [
 
 [[package]]
 name = "zcash-delivery-proof"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "base64",
  "hex",
  "orchard",
+ "sapling-crypto",
  "serde",
  "zcash_address",
  "zcash_note_encryption",
  "zcash_primitives",
  "zcash_protocol",
+ "zip32",
 ]
 
 [[package]]
 name = "zcash-delivery-proof-wasm"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "getrandom",
  "hex",

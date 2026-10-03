@@ -31,12 +31,19 @@ pub fn read_tx(tx: &[u8]) -> Result<Transaction, Error> {
     Ok(t)
 }
 
-/// The transaction's bundle in `pool`, if it has one.
+/// The transaction's Orchard-family bundle in `pool`, if it has one (`None` for Sapling: see
+/// [`sapling_outputs`]).
 pub(crate) fn bundle(t: &Transaction, pool: Pool) -> Option<&orchard::Bundle<Authorized, ZatBalance>> {
     match pool {
         Pool::Orchard => t.orchard_bundle(),
         Pool::Ironwood => t.ironwood_bundle(),
+        Pool::Sapling => None,
     }
+}
+
+/// The transaction's Sapling outputs (empty without a Sapling bundle).
+pub(crate) fn sapling_outputs(t: &Transaction) -> &[sapling::bundle::OutputDescription<sapling::bundle::GrothProofBytes>] {
+    t.sapling_bundle().map(|b| b.shielded_outputs()).unwrap_or(&[])
 }
 
 /// The wtxid (ZIP 239): the txid then the authorizing-data digest, both in internal byte order. Unlike

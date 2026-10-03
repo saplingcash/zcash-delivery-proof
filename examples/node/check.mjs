@@ -3,7 +3,7 @@
 //
 //   node examples/node/check.mjs
 import { readFileSync } from "node:fs";
-import { initSync, check, make, addressHasReceiver } from "../../wasm/pkg/zcash_delivery_proof_wasm.js";
+import { initSync, check, make, makeWithOutgoingKeys, addressHasReceiver } from "../../wasm/pkg/zcash_delivery_proof_wasm.js";
 
 const root = new URL("../../", import.meta.url);
 initSync({ module: readFileSync(new URL("wasm/pkg/zcash_delivery_proof_wasm_bg.wasm", root)) });
@@ -38,6 +38,14 @@ const t = read("testnet.json");
 const d = JSON.parse(check(t.txHex, t.proof, t.network));
 expect(d.value === 546 && d.txid === t.txid, `testnet ${t.txid.slice(0, 16)}…: 546 zatoshi, memo starts "${(d.memoText ?? "").split("\n")[0]}"`);
 expect(JSON.parse(make(t.txHex, t.ufvk))[0]?.proof === t.proof, "testnet: the wallet's key finds its note");
+
+const s = read("testnet-sapling.json");
+const ds = JSON.parse(check(s.txHex, s.proof, s.network));
+expect(ds.pool === "sapling" && ds.value === s.value && ds.txid === s.txid && ds.memoText === s.memoText && ds.address === s.address, `testnet ${s.txid.slice(0, 16)}…: a Sapling note of ${s.value} zatoshi, memo "${ds.memoText}"`);
+expect(JSON.parse(make(s.txHex, s.ufvk))[0]?.proof === s.proof, "testnet Sapling: the wallet's key finds its note");
+const sent = JSON.parse(makeWithOutgoingKeys(s.txHex, s.network, "", s.senderOvk));
+expect(sent.length === 1 && sent[0].side === "sent" && sent[0].proof === s.proof, "testnet Sapling: the sender's outgoing viewing key alone finds it, sent");
+expect(addressHasReceiver(s.address, s.proof), "testnet Sapling: the address carries the proof's receiver");
 
 const m = read("mainnet.json");
 const dm = JSON.parse(check(m.txHex, m.proof, m.network));

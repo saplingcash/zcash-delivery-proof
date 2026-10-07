@@ -34,10 +34,10 @@ export interface InitOutput {
     readonly check: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
     readonly make: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly makeWithOutgoingKeys: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number, number, number];
-    readonly rustsecp256k1_v0_10_0_context_create: (a: number) => number;
-    readonly rustsecp256k1_v0_10_0_context_destroy: (a: number) => void;
-    readonly rustsecp256k1_v0_10_0_default_error_callback_fn: (a: number, b: number) => void;
-    readonly rustsecp256k1_v0_10_0_default_illegal_callback_fn: (a: number, b: number) => void;
+    readonly rustsecp256k1_v0_14_context_create: (a: number) => number;
+    readonly rustsecp256k1_v0_14_context_destroy: (a: number) => void;
+    readonly rustsecp256k1_v0_14_default_error_callback_fn: (a: number, b: number) => void;
+    readonly rustsecp256k1_v0_14_default_illegal_callback_fn: (a: number, b: number) => void;
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

@@ -26,7 +26,7 @@ fn proof(c: &Value, i: usize) -> DeliveryProof {
 fn a_ufvk_with_both_items_sees_both_protocols() {
     // one wallet with an Orchard and a Sapling item: its Sapling note in the Sapling transaction
     let name = "vectors/sapling/merchant";
-    let both = unified::Ufvk::try_from_items(vec![unified::Fvk::Orchard(common::fvk(name).to_bytes()), unified::Fvk::Sapling(common::sapling_dfvk(name).to_bytes())]).unwrap().encode(&NetworkType::Test);
+    let both = unified::Ufvk::try_from_items(unified::Revision::R0, vec![unified::Uitem::Data(unified::Fvk::Orchard(common::fvk(name).to_bytes())), unified::Uitem::Data(unified::Fvk::Sapling(common::sapling_dfvk(name).to_bytes()))]).unwrap().encode(&NetworkType::Test);
     let keys = ViewingKeys::parse(&both).unwrap();
     assert_eq!((keys.incoming.len(), keys.outgoing.len(), keys.sapling_incoming.len(), keys.sapling_outgoing.len()), (2, 2, 2, 2));
     let c = case("sapling");
@@ -69,7 +69,7 @@ fn the_receiver_is_a_sapling_address() {
     let p = proof(&c, 0);
     let ua = pool_receiver_address(Pool::Sapling, &p.receiver, NetworkType::Test);
     // a unified address with the one Sapling receiver
-    let (net, decoded) = unified::Address::decode(&ua).unwrap();
+    let (net, _revision, decoded) = unified::Address::decode(&ua).unwrap();
     assert_eq!(net, NetworkType::Test);
     assert_eq!(unified::Container::items(&decoded), vec![unified::Receiver::Sapling(p.receiver)]);
     assert!(address_has_pool_receiver(&ua, Pool::Sapling, &p.receiver));

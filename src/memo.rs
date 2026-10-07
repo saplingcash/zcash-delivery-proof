@@ -26,7 +26,7 @@ pub fn pool_receiver_address(pool: Pool, receiver: &[u8; 43], network: NetworkTy
         Pool::Orchard | Pool::Ironwood => unified::Receiver::Orchard(*receiver),
         Pool::Sapling => unified::Receiver::Sapling(*receiver),
     };
-    unified::Address::try_from_items(vec![item]).expect("one shielded receiver is a valid unified address").encode(&network)
+    unified::Address::try_from_items(unified::Revision::R0, vec![unified::Uitem::Data(item)]).expect("one shielded receiver is a valid unified address").encode(&network)
 }
 
 /// Whether a unified address (or any address zcash_address reads) carries this Orchard receiver. A

@@ -40,16 +40,16 @@ pub fn address(name: &str) -> orchard::Address {
 }
 
 pub fn ufvk(name: &str) -> String {
-    unified::Ufvk::try_from_items(vec![unified::Fvk::Orchard(fvk(name).to_bytes())]).expect("a UFVK").encode(&NetworkType::Test)
+    unified::Ufvk::try_from_items(unified::Revision::R0, vec![unified::Uitem::Data(unified::Fvk::Orchard(fvk(name).to_bytes()))]).expect("a UFVK").encode(&NetworkType::Test)
 }
 
 pub fn uivk(name: &str) -> String {
-    unified::Uivk::try_from_items(vec![unified::Ivk::Orchard(fvk(name).to_ivk(Scope::External).to_bytes())]).expect("a UIVK").encode(&NetworkType::Test)
+    unified::Uivk::try_from_items(unified::Revision::R0, vec![unified::Uitem::Data(unified::Ivk::Orchard(fvk(name).to_ivk(Scope::External).to_bytes()))]).expect("a UIVK").encode(&NetworkType::Test)
 }
 
 /// A Sapling wallet: the ZIP 32 master key of the label's 32 bytes.
 pub fn sapling_dfvk(name: &str) -> sapling::zip32::DiversifiableFullViewingKey {
-    sapling::zip32::ExtendedSpendingKey::master(&label::<32>(name)).to_diversifiable_full_viewing_key()
+    sapling::zip32::ExtendedSpendingKey::master(&label::<32>(name)).expect("a master key from 32 label bytes").to_diversifiable_full_viewing_key()
 }
 
 pub fn sapling_address(name: &str) -> sapling::PaymentAddress {
@@ -57,11 +57,11 @@ pub fn sapling_address(name: &str) -> sapling::PaymentAddress {
 }
 
 pub fn sapling_ufvk(name: &str) -> String {
-    unified::Ufvk::try_from_items(vec![unified::Fvk::Sapling(sapling_dfvk(name).to_bytes())]).expect("a UFVK").encode(&NetworkType::Test)
+    unified::Ufvk::try_from_items(unified::Revision::R0, vec![unified::Uitem::Data(unified::Fvk::Sapling(sapling_dfvk(name).to_bytes()))]).expect("a UFVK").encode(&NetworkType::Test)
 }
 
 pub fn sapling_uivk(name: &str) -> String {
-    unified::Uivk::try_from_items(vec![unified::Ivk::Sapling(sapling_dfvk(name).to_external_ivk().to_bytes())]).expect("a UIVK").encode(&NetworkType::Test)
+    unified::Uivk::try_from_items(unified::Revision::R0, vec![unified::Uitem::Data(unified::Ivk::Sapling(sapling_dfvk(name).to_external_ivk().to_bytes()))]).expect("a UIVK").encode(&NetworkType::Test)
 }
 
 /// The wallet `name`'s UFVK, UIVK and raw receiver in `pool` (an Orchard wallet for Orchard and Ironwood,
@@ -86,7 +86,7 @@ impl sapling::prover::SpendProver for NoSapling {
     fn prepare_circuit(_: sapling::ProofGenerationKey, _: sapling::Diversifier, _: sapling::Rseed, _: sapling::value::NoteValue, _: jubjub::Fr, _: sapling::value::ValueCommitTrapdoor, _: bls12_381::Scalar, _: sapling::MerklePath) -> Option<sapling::circuit::Spend> {
         None
     }
-    fn create_proof<R: rand_core::RngCore>(&self, _: sapling::circuit::Spend, _: &mut R) -> Self::Proof {
+    fn create_proof<R: rand_core::Rng>(&self, _: sapling::circuit::Spend, _: &mut R) -> Self::Proof {
         unreachable!("no Sapling spends")
     }
     fn encode_proof(p: Self::Proof) -> sapling::bundle::GrothProofBytes {
@@ -98,7 +98,7 @@ impl sapling::prover::OutputProver for NoSapling {
     fn prepare_circuit(_: &sapling::keys::EphemeralSecretKey, _: sapling::PaymentAddress, _: jubjub::Fr, _: sapling::value::NoteValue, _: sapling::value::ValueCommitTrapdoor) -> sapling::circuit::Output {
         unreachable!("no Sapling outputs")
     }
-    fn create_proof<R: rand_core::RngCore>(&self, _: sapling::circuit::Output, _: &mut R) -> Self::Proof {
+    fn create_proof<R: rand_core::Rng>(&self, _: sapling::circuit::Output, _: &mut R) -> Self::Proof {
         unreachable!("no Sapling outputs")
     }
     fn encode_proof(p: Self::Proof) -> sapling::bundle::GrothProofBytes {
@@ -115,7 +115,7 @@ impl sapling::prover::OutputProver for PlaceholderSaplingOutputProof {
     fn prepare_circuit(_: &sapling::keys::EphemeralSecretKey, _: sapling::PaymentAddress, _: jubjub::Fr, _: sapling::value::NoteValue, _: sapling::value::ValueCommitTrapdoor) -> sapling::circuit::Output {
         sapling::circuit::Output { value_commitment_opening: None, payment_address: None, commitment_randomness: None, esk: None }
     }
-    fn create_proof<R: rand_core::RngCore>(&self, _: sapling::circuit::Output, _: &mut R) -> Self::Proof {
+    fn create_proof<R: rand_core::Rng>(&self, _: sapling::circuit::Output, _: &mut R) -> Self::Proof {
         [0u8; 192]
     }
     fn encode_proof(p: Self::Proof) -> sapling::bundle::GrothProofBytes {
@@ -125,8 +125,8 @@ impl sapling::prover::OutputProver for PlaceholderSaplingOutputProof {
 
 /// The scriptPubKey of the coin a test transaction spends (the P2PKH of its label-derived key).
 pub fn coin_script(name: &str) -> Vec<u8> {
-    let secret = secp256k1::SecretKey::from_slice(&label::<32>(&format!("{name}/coin-key"))).expect("a secp256k1 key");
-    let pk = secp256k1::PublicKey::from_secret_key(&secp256k1::Secp256k1::new(), &secret);
+    let secret = secp256k1::SecretKey::from_secret_bytes(label::<32>(&format!("{name}/coin-key"))).expect("a secp256k1 key");
+    let pk = secp256k1::PublicKey::from_secret_key(&secret);
     let script: zcash_transparent::address::Script = TransparentAddress::from_pubkey(&pk).script().into();
     script.0 .0
 }
@@ -157,7 +157,7 @@ pub fn build(pool: zcash_delivery_proof::Pool, name: &str, sender: &str, payment
         Pool::Ironwood | Pool::Sapling => params.activation_height(NetworkUpgrade::Nu6_3).unwrap(),
     };
     let mut signing = TransparentSigningSet::new();
-    let secret = secp256k1::SecretKey::from_slice(&label::<32>(&format!("{name}/coin-key"))).expect("a secp256k1 key");
+    let secret = secp256k1::SecretKey::from_secret_bytes(label::<32>(&format!("{name}/coin-key"))).expect("a secp256k1 key");
     let pubkey = signing.add_key(secret);
     let coin_addr = TransparentAddress::from_pubkey(&pubkey);
     let coin_value = COIN_VALUE;

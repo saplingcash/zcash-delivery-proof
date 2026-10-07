@@ -56,8 +56,8 @@ fn a_changed_ciphertext_does_not_decrypt_even_under_its_new_txid() {
     for (tx, proof, _) in cases() {
         let t = zcash_delivery_proof::read_tx(&tx).unwrap();
         let enc: [u8; 580] = match proof.pool {
-            Pool::Orchard => t.orchard_bundle().unwrap().actions()[usize::from(proof.action)].encrypted_note().enc_ciphertext,
-            Pool::Ironwood => t.ironwood_bundle().unwrap().actions()[usize::from(proof.action)].encrypted_note().enc_ciphertext,
+            Pool::Orchard => t.orchard_bundle().unwrap().actions()[usize::from(proof.action)].encrypted_note().enc_ciphertext.as_ref().try_into().unwrap(),
+            Pool::Ironwood => t.ironwood_bundle().unwrap().actions()[usize::from(proof.action)].encrypted_note().enc_ciphertext.as_ref().try_into().unwrap(),
             Pool::Sapling => *t.sapling_bundle().unwrap().shielded_outputs()[usize::from(proof.action)].enc_ciphertext(),
         };
         // find the action's encrypted note (with its memo) in the bytes and change one byte of it

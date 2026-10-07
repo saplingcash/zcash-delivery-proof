@@ -152,7 +152,7 @@ fn a_proof_names_the_receiver_inside_a_fuller_address() {
     let case = &file()["cases"][0];
     let proof = DeliveryProof::decode(case["payments"][0]["proof"].as_str().unwrap()).unwrap();
     // the merchant's published address carries a transparent receiver too; the proof names its Orchard part
-    let full = unified::Address::try_from_items(vec![unified::Receiver::P2pkh(common::label("vectors/merchant-p2pkh")), unified::Receiver::Orchard(proof.receiver)]).unwrap().encode(&NetworkType::Test);
+    let full = unified::Address::try_from_items(unified::Revision::R0, vec![unified::Uitem::Data(unified::Receiver::P2pkh(common::label("vectors/merchant-p2pkh"))), unified::Uitem::Data(unified::Receiver::Orchard(proof.receiver))]).unwrap().encode(&NetworkType::Test);
     assert!(zcash_delivery_proof::address_has_receiver(&full, &proof.receiver));
     assert!(!zcash_delivery_proof::address_has_receiver(&full, &common::address("vectors/stranger").to_raw_address_bytes()));
 }

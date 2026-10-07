@@ -27,7 +27,7 @@ impl ViewingKeys {
     /// Reads a UFVK (`uview…`) or UIVK (`uivk…`); an Orchard item, a Sapling item, or both are required.
     pub fn parse(s: &str) -> Result<ViewingKeys, Error> {
         let s = s.trim();
-        if let Ok((network, ufvk)) = unified::Ufvk::decode(s) {
+        if let Ok((network, _revision, ufvk)) = unified::Ufvk::decode(s) {
             let mut keys = ViewingKeys::none(network);
             for item in ufvk.items() {
                 match item {
@@ -47,7 +47,7 @@ impl ViewingKeys {
             }
             return Ok(keys);
         }
-        if let Ok((network, uivk)) = unified::Uivk::decode(s) {
+        if let Ok((network, _revision, uivk)) = unified::Uivk::decode(s) {
             let mut keys = ViewingKeys::none(network);
             for item in uivk.items() {
                 match item {

@@ -17,34 +17,35 @@ name = "zcash_delivery_proof"
 [features]
 # also verify the bundle's zk-SNARK and signatures (orchard's BatchValidator; Orchard and Ironwood bundles):
 # heavy, off by default
-verify-bundle = ["orchard/circuit", "dep:rand_core", "dep:zcash_transparent", "dep:zcash_script"]
+verify-bundle = ["orchard/circuit", "dep:rand", "dep:rand_core", "dep:zcash_transparent", "dep:zcash_script"]
 
 [dependencies]
-zcash_primitives = { version = "0.30", default-features = false, features = ["std"] }
-zcash_protocol = "0.10"
-zcash_address = "0.13"
-orchard = { version = "0.15", default-features = false, features = ["std"] }
-sapling = { package = "sapling-crypto", version = "0.7", default-features = false }
-zip32 = "0.2"
-zcash_note_encryption = "0.4"
+zcash_primitives = { version = "=0.31.0-pre.1", default-features = false, features = ["std"] }
+zcash_protocol = "=0.11.0-pre.0"
+zcash_address = "=0.14.0-pre.1"
+orchard = { version = "0.16", default-features = false, features = ["std"] }
+sapling = { package = "sapling-crypto", version = "0.9", default-features = false }
+zip32 = "0.3"
+zcash_note_encryption = "0.5"
 base64 = "0.22"
 hex = "0.4"
 serde = { version = "1", features = ["derive"] }
 # verify-bundle only
-rand_core = { version = "0.6", features = ["getrandom"], optional = true }
-zcash_transparent = { version = "0.10", optional = true }
-zcash_script = { version = "0.4.3", default-features = false, optional = true }
+rand = { version = "0.10", default-features = false, features = ["sys_rng"], optional = true }
+rand_core = { version = "0.10", optional = true }
+zcash_transparent = { version = "=0.11.0-pre.1", optional = true }
+zcash_script = { version = "0.6", default-features = false, optional = true }
 
 [dev-dependencies]
 # building the test transactions (label-derived keys, a seeded RNG, real proofs)
-zcash_primitives = { version = "0.30", default-features = false, features = ["std", "circuits", "transparent-inputs"] }
-orchard = { version = "0.15", default-features = false, features = ["std", "circuit"] }
-zcash_transparent = { version = "0.10", features = ["transparent-inputs"] }
-sapling = { package = "sapling-crypto", version = "0.7", default-features = false, features = ["circuit"] }
-jubjub = "0.10"
-bls12_381 = "0.8"
-secp256k1 = "0.29"
-rand_core = "0.6"
-rand_chacha = "0.3"
+zcash_primitives = { version = "=0.31.0-pre.1", default-features = false, features = ["std", "circuits", "transparent-inputs"] }
+orchard = { version = "0.16", default-features = false, features = ["std", "circuit"] }
+zcash_transparent = { version = "=0.11.0-pre.1", features = ["transparent-inputs"] }
+sapling = { package = "sapling-crypto", version = "0.9", default-features = false, features = ["circuit"] }
+jubjub = "0.11"
+bls12_381 = "0.9"
+secp256k1 = "0.33"
+rand_core = "0.10"
+rand_chacha = "0.10"
 sha2 = "0.10"
 serde_json = "1"

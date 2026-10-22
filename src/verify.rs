@@ -11,8 +11,7 @@ use orchard::bundle::BatchValidator;
 use orchard::circuit::{OrchardCircuitVersion, VerifyingKey};
 use rand::rngs::SysRng;
 use rand_core::UnwrapErr;
-use zcash_primitives::transaction::sighash::{signature_hash, SignableInput};
-use zcash_primitives::transaction::txid::TxIdDigester;
+use zcash_primitives::transaction::sighash::{PrecomputedSighashData, SignableInput};
 use zcash_primitives::transaction::{Authorization, TransactionData};
 use zcash_protocol::value::Zatoshis;
 use zcash_transparent::address::Script;
@@ -93,8 +92,7 @@ pub fn verify_bundle(tx: &[u8], pool: Pool, spent: &[SpentCoin]) -> Result<(), E
         |s| s,
         |o| o,
     );
-    let parts = data.digest(TxIdDigester);
-    let sighash: [u8; 32] = *signature_hash(&data, &SignableInput::Shielded, &parts).as_ref();
+    let sighash: [u8; 32] = *PrecomputedSighashData::new(data).signature_hash(&SignableInput::Shielded).as_ref();
     let mut v = BatchValidator::new(verifying_key(b.bundle_version().circuit_version()));
     v.add_bundle(b, sighash).map_err(|e| Error::Mismatch(format!("the bundle cannot be verified with its circuit's key: {e:?}")))?;
     if v.validate(UnwrapErr(SysRng)) {
